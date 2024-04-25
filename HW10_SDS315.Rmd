@@ -1,0 +1,160 @@
+---
+title: "Home Work 10"
+author: "Nicholas Nasser"
+date: "Github Repository Link - https://github.com/sous20/HW-10"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(ggplot2)
+library(mosaic)
+library(MatchIt)
+library(kableExtra)
+library(moderndive)
+options(scipen = 999)
+
+redline = read.csv("redlining.csv")
+grocery = read.csv("groceries.csv")
+
+```
+
+## Problem 1
+
+&nbsp;
+
+*Question*: 
+
+The question I am attempting to answer is whether or not the racial/ethnic composition of a ZIP code has an effect on the number of FAIR policies per 100 housing units in said ZIP code.
+
+*Approach*: 
+
+The statistical tool I decided to answer this question with was a multiple linear regression model, as it would allow me to isolate the effect of the minority variable on the policies variable. 
+
+*Results*:
+
+```{r}
+
+redline_lm = lm(policies ~ minority + fire + age + income, data = redline)
+
+redline_lm_table = get_regression_table(redline_lm, conf.level = 0.95, digits = 4)
+
+redline_lm_table %>% 
+  
+  kbl(caption = "Regression Table for FAIR Policies vs. Redline Variables") %>%
+    
+  kable_styling(latex_options = "hold_position")
+
+```
+
+&nbsp;
+
+The table above is a visual representation of the coefficients and other summary statistics for the linear regression model I built. For the partial relationship between the policies variable and the minorities variable, the coefficient was 0.0084 with a 95% confidence interval of 0.0025 to 0.0142. The p-value under the null hypothesis that the minority variable has no effect on the policies variable was 0.0061.   
+
+*Conclusion*: 
+
+After looking over the results generated from the linear model, I can conclude that the racial/ethnic composition of a ZIP code does have a notable effect on the number of FAIR policies per 100 housing units in said ZIP code. The confidence interval for the coefficient of the partial relationship between the policies and minority variables demonstrates statistical significance, and the low p-value of 0.0061 indicates that the likelihood of zero correlation between the two is quite low. Considering that the average number of policies per 100 housing units is `r mean(redline$policies)`, an increase of 0.0084 policies for every additional percent of minority population is quite substantial.
+
+\newpage
+
+## Problem 2
+
+#### Part A
+
+```{r, fig.align = "center", fig.height = 2.8}
+
+grocery_by_store = grocery %>% 
+  
+  group_by(Store) %>%
+  
+  summarise(mean_price = mean(Price))
+
+ggplot(grocery_by_store) + geom_col(aes(x = Store, y = mean_price), color = "black", fill = "khaki") + coord_flip() + labs(title = "Average Price of Products by Store", x = "Store", y = "Average Price")
+
+```
+The plot above illustrates the average price of products for each store in the data set.
+
+#### Part B
+
+&nbsp;
+
+```{r, message = FALSE, fig.align = "center", fig.height = 5}
+
+products = grocery %>%
+  
+  group_by(Product, City) %>%
+  
+  summarise(num_stores = n_distinct(Store))
+
+products2 = products %>%
+  
+  group_by(Product) %>%
+  
+  summarise(num_stores2 = sum(num_stores))
+
+ggplot(products2) + geom_col(aes(x = Product, y = num_stores2), color = "black", fill = "khaki") + coord_flip() + labs(title = "Number of Stores Carrying Each Product", x = "Product", y = "Number of Stores")
+
+```
+The plot above shows how many stores (out of the 16 different ones in the data set) carry each product.
+
+#### Part C
+
+```{r, results = FALSE}
+
+type_lm = lm(Price ~ Product + Type, data = grocery)
+
+get_regression_table(type_lm, conf.level = 0.95, digits = 2)
+
+```
+
+&nbsp;
+
+Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers), convenience stores charge somewhere between 0.41 and 0.92 dollars more for the same product.
+
+#### Part D
+
+```{r, results = FALSE}
+
+price_lm = lm(Price ~ Product + Store, data = grocery)
+
+get_regression_table(price_lm, conf.level = 0.95, digits = 2)
+
+```
+&nbsp;
+
+When comparing the same product, the two stores that seem to charge the lowest are Kroger Fresh Fare (estimated -0.90 from baseline) and Walmart (estimated -0.99 from baseline). The two stores that seem to charge the highest are Wheatsville Food Co-Op (estimated +0.29 from baseline) and Whole Foods (estimated +0.36 from baseline).
+
+#### Part E
+
+&nbsp;
+
+Looking at the linear model from part D, it is clear that Central Market charges similar prices to HEB. HEB charges -0.65 cents from the baseline, while Central Market charges -0.57 cents from the baseline. Compared to other stores, the gap between the two price points is relatively small. For example, the difference in magnitude between the coefficients for Target and Natural Grocers is 0.29 cents, which is much larger.
+
+#### Part F
+
+&nbsp;
+
+```{r, results = FALSE}
+
+grocery = mutate(grocery, Income10K = Income / 10000)
+
+income_lm = lm(Price ~ Product + Income10K, data = grocery)
+
+get_regression_table(income_lm, conf.level = 0.95, digits = 4)
+
+```
+Based on the sign of the Income10K coefficient, consumers in poorer ZIP codes tend to pay more for the same product on average. I know this because as income increases, price decreases (within the partial relationship of Price and Income10K). A one-standard deviation increase in the income of a ZIP code seems to be associated with a 0.0096 standard-deviation change in the price that consumers in that ZIP code expect to pay for the same product.
+
+
+
+
+
+
+
+
+
+
+
